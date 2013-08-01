@@ -14,7 +14,9 @@ Just open a terminal in a Linux box and run:
 
 
 `git clone https://github.com/georgepsarakis/python-chess-board.git`
+
 `cd python-chess-board`
+
 `./chessboard.py --help`
 
 to get a list of the command line arguments (basically the usernames) or just:
