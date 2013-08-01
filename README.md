@@ -51,6 +51,6 @@ Apart from basic understanding of the [chess moves](https://en.wikipedia.org/wik
 * It should be able to detect, verify and report check & checkmate events (maybe the first steps towards an engine?).
 
 ----
-
 This is intended as a fun & learning project and has no actual real-life value except for learning purposes. 
+
 Please open an issue in order to ask questions and express (constructive) criticism!
