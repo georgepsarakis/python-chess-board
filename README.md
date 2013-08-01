@@ -41,7 +41,7 @@ Apart from basic understanding of the [chess moves](https://en.wikipedia.org/wik
 1. You are presented with the initial board setup
 2. The timer starts for White
 3. Once you thought of your move, just press `Enter` to stop the clock
-4. Enter your move according to the pattern: __PIECE SQUARE__->__TARGET SQUARE__ . Example: __b2__->__B3__ will move the white pawn in *B2* one position forward. You can use uppercase or lowercase letters, and add whitespace between the *->* separator and the square notation, it doesn't matter.
+4. Enter your move according to the pattern: `PIECE SQUARE->TARGET SQUARE` . Example: `b2 -> B3` will move the white pawn in *B2* one position forward. You can use uppercase or lowercase letters, and add whitespace between the *->* separator and the square notation, it doesn't matter.
 5. The move is checked and the user is either prompted with an error message, explaining why the move was rejected or if accepted the timer for the other user starts counting
 6. Process is repeated
 
