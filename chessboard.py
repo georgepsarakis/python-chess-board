@@ -1,23 +1,28 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import os, sys, signal
-from time import time
+import os
+import sys
+import signal
 import re
+from string import ascii_uppercase
+from time import time
 from random import randint
 import argparse
-from string import ascii_uppercase
 import select
 
-''' helper functions '''
+''' Helper Functions '''
 def x(code = 0):
-  sys.exit()
-
+  sys.exit(code)
 ''' ############### '''
 
 class Piece(object):
-  Alive = True
-  Row = None
-  Column = None
+  '''
+  Object model of a chess piece
+  
+  We keep information on what kind of movements the piece is able to make (straight, diagonal, gamma),
+  how many squares it can cross in a single move, its type (of course) and the color (white or black).
+     
+  '''
   DirectionDiagonal = False
   DirectionStraight = False
   DirectionGamma = False
@@ -44,52 +49,63 @@ class Piece(object):
   }
 
   def __init__(self, **kwargs):
+    ''' Constructor for a new chess piece '''
     self.Type = kwargs['Type']
+    ''' perform a basic check for the type '''
     if not self.Type in self.AvailableTypes:
       raise Exception('Unknown Piece Type')
       x(1)
     self.Color = kwargs['Color']
     directions = self.Types_Direction_Map[self.Type]
+    ''' check allowed directions for movements '''
     self.DirectionDiagonal = 'diagonal' in directions
     self.DirectionGamma = 'gamma' in directions
     self.DirectionStraight = 'straight' in directions
+    ''' determine if there is a limitation on the number of squares per move '''
     self.MaxSquares = self.Types_MaxSquares_Map[self.Type]
+    ''' only Knights can move over other pieces '''
     if self.Type == 'Knight':
       self.LeapOverPiece = True
 
-  
   def __str__(self):
+    ''' Returns the piece's string representation: color and type '''
     return self.Color[0].lower() + self.Type[0].upper()
         
 class Square(object):
   Row = 0
   Column = 0
-  __Occupied = False
-  __Piece = None
+  Occupied = False
+  Piece = None
 
   def __init__(self, row, column):
+    ''' Square constructor requires zero-based row & column indexes '''
     self.Row = row
     self.Column = column
 
   def is_occupied(self):
-    return self.__Occupied
+    ''' Returns True if the square has a piece attached to it, False otherwise '''
+    return self.Occupied
 
-  def set_piece(self, Piece):
-    if Piece is None:
-      self.__Occupied = False
+  def set_piece(self, piece):
+    ''' Sets the piece for a square and resets the Occupied variable accordingly '''
+    if piece is None:
+      self.Occupied = False
     else:
-      self.__Occupied = True
-    self.__Piece = Piece
+      self.Occupied = True
+    self.Piece = piece
 
   def get_piece(self):
-    return self.__Piece
+    ''' Getter method to return the piece attached to this square instance '''
+    return self.Piece
 
   @staticmethod
   def row_index(row):
+    ''' static method that returns the zero-based row index '''
     return int(row) - 1
   
   @staticmethod
   def column_index(col):
+    ''' static method that returns the zero-based column index '''
     try:
       col = int(col) - 1
     except:
@@ -98,17 +114,26 @@ class Square(object):
 
   @staticmethod
   def index_column(col):
+    ''' static method that returns the column letter from zero-based column index '''
     return ascii_uppercase[col]
 
   @staticmethod
   def position(row, col):
+    ''' 
+    static method to convert zero-indexed integer coordinates to board notation 
+    e.g. (0,1) -> "B1"
+    '''
     return ascii_uppercase[int(col)] + str(int(row) + 1)
         
   def __str__(self):
-    if self.__Piece is None:
+    ''' 
+    Return a string representation of the square.
+    If it is occupied then return the piece info as well.
+    '''
+    if self.Piece is None:
       piece = ""
     else:
-      piece_color = str(self.__Piece)
+      piece_color = str(self.Piece)
     properties = {
         'piece'  : piece,
         'row'    : self.Row + 1,
@@ -183,12 +208,11 @@ class Board(object):
       board_display += '  ' + '-'*len(column_display) + "\n"
     board_display += ' ' + column_display
     return board_display
-      
-           
+                     
 class Game(object):
   board = None
   user_white = None
-  user_black = None
+  user_black = None  
   CurrentPlayer = 'white'
   Timers = {
       'white' : {
@@ -202,6 +226,9 @@ class Game(object):
     }
 
   def __init__(self, arguments):
+    '''
+    Game object model    
+    '''
     if randint(1, 2) == 1:
       self.user_white = arguments.user1
       self.user_black = arguments.user2
@@ -226,6 +253,11 @@ class Game(object):
 
   def start_timer(self):
     user = self.CurrentPlayer
+    if user == 'white':
+      display_username = self.user_white
+    else:
+      display_username = self.user_black
+    print 'NOW PLAYING: %s' % display_username
     start_time = time()
     last_sec = int(start_time)
     while True:
@@ -249,6 +281,13 @@ class Game(object):
   def move_piece(self):
     user = self.CurrentPlayer
     move = raw_input(user.upper() + ' >> ')
+    if move.lower() == 'quit':
+      if user == 'white':
+        display_username = self.user_white
+      else:
+        display_username = self.user_black
+      print "%s quits" % display_username
+      x()
     piece, new_position = re.sub('\s+', '', move).split('->')
     piece = piece.upper()
     new_position = new_position.upper()
@@ -324,34 +363,51 @@ class Game(object):
     return ( True, '', )
 
   def change_player(self):
+    ''' perform any actions necessary to change the current player '''
     if self.CurrentPlayer == 'white':
       self.CurrentPlayer = 'black'
     else:
       self.CurrentPlayer = 'white'
 
   def __str__(self):
-    b = str(self.board)
-    l = len(b.split("\n")[0])
-    user = "{user:^%d}\n" % l
+    '''
+    Display the board at the current state.
+    '''
+    b = str(self.board) # Get the board string representation
+    l = len(b.split("\n")[0]) # find the length of the first line
+    ''' use format to display the usernames centered on top and bottom respectively (depending which color each player is assigned) '''
+    user = "{user:^%d}\n" % l     
+    ''' add usernames to the board '''
     board = user.format(user=self.user_black)
     board += b + '\n'
     board += user.format(user=self.user_white)
     return board    
 
-if __name__ == '__main__': 
+if __name__ == '__main__':
+  ''' 
+  Parse command line arguments;
+  -h/--help is reserved by default and will display all available parameters.
+  '''
   argparser = argparse.ArgumentParser('Python Console Chessboard')
   argparser.add_argument('--user1', help = '1st username', default = 'User #1')
   argparser.add_argument('--user2', help = '2nd username', default = 'User #2')
   arguments = argparser.parse_args() 
+
+  ''' start the game '''
   game = Game(arguments)
   game.board.setup()
+  ''' display initial board setup '''
   print game
   while True:
+    ''' start the timer for the current player '''
     game.start_timer()
+    ''' request a piece move '''
     move_legal, message = game.move_piece()
     if move_legal:
+      ''' if move is legal show changed board '''
       print game  
     else:
+      ''' otherwise request a new move from the player '''
       print '%s, PLEASE PLAY AGAIN' % (message,)
   
 
