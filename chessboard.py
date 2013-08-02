@@ -151,12 +151,16 @@ class Board(object):
   '''
   Object model of the board
 
-  Described by a dictionary which keys are square positions 
+  Described by a dictionary (Squares) which keys are square positions 
   in their string representations (e.g. A1),
   and values the corresponding Square instances.
   '''
   Squares = {}
-  ''' The initial setup of the board. '''
+  ''' 
+  The initial setup of the board. 
+  The way that the setup is given makes it easier to 
+  implement "Save Game" & "Load Game" features.
+  '''
   Setup = {
       'Pawn'   : 'A2:H2|A7:H7',
       'Rook'   : 'A1,H1|A8,H8',
@@ -167,11 +171,17 @@ class Board(object):
     }  
 
   def __init__(self):
+    ''' Simply construct the 64 squares '''
     for i in range(8):
       for j in range(8):
         self.Squares[Square.position(i, j)] = Square(i, j)
 
   def setup(self):
+    ''' 
+    Setup our board by assigning pieces to the squares!
+    A separate method makes it easier to implement
+    "Save" & "Load" features
+    '''
     for piece_type, piece_range in self.Setup.iteritems():
       white, black = piece_range.split('|')
       for p in self.parse_range(white):
@@ -180,6 +190,11 @@ class Board(object):
         self.add_piece('black', piece_type, p[0], p[1])
  
   def parse_range(self, r):
+    '''
+    Parse setup ranges (from the Setup dictionary) 
+    and return a list of tuples with the square coordinates 
+    to be assigned to the piece type.
+    '''
     distinct = not ( ':' in r )
     separator = None
     if ':' in r:
@@ -203,9 +218,13 @@ class Board(object):
       return r
   
   def add_piece(self, color, piece_type, row, column):    
+    ''' Add a piece to a square in the board '''
     self.Squares[Square.position(row, column)].set_piece(Piece(Type=piece_type, Color=color))
 
   def __str__(self):
+    '''
+    String representation of the board at its current state.
+    '''
     column_display = '  %s  '*8 % tuple( [ Square.index_column(c) for c in list(range(8)) ] )
     board_display = "  %s\n" % (column_display,)
     board_display += '  ' + '-'*len(column_display) + "\n"
@@ -243,15 +262,18 @@ class Game(object):
     '''
     Game object model    
     '''
+    ''' Randomly assign the color to a player '''
     if randint(1, 2) == 1:
       self.user_white = arguments.user1
       self.user_black = arguments.user2
     else:
       self.user_white = arguments.user2
       self.user_black = arguments.user1
+    ''' Instantiate a board for our game '''
     self.board = Board()
 
   def time_format(self, t, user, start_time):
+    ''' Display elapsed seconds for the user in human readable format '''
     current = int(t - start_time) + self.Timers[user]['timer']
     minutes = current/60
     seconds = current - 60*minutes
@@ -262,11 +284,13 @@ class Game(object):
     return str(minutes) + ':' + str(seconds)
 
   def parse_time(self, t):
+    ''' Convert time from string (human readable - MM:SS) format to seconds '''
     t = t.split(':')
     return int(t[0])*60 + int(t[1])
 
   def start_timer(self):
     user = self.CurrentPlayer
+    ''' Get the current user for displaying purposes '''
     if user == 'white':
       display_username = self.user_white
     else:
@@ -276,17 +300,31 @@ class Game(object):
     last_sec = int(start_time)
     while True:
       t = int(time())
+      ''' Check when the second has changed '''
       if t != last_sec:
         if not self.Timers[user]['first_run']:
+          ''' 
+          Send 5 backspaces (we assume that no game lasts more than 99:99x2) 
+          to rewrite the time.
+          The first_run key shows that the first time the timer is displayed 
+          we must not print backspaces (we would send the cursor to the previous line).
+          '''
           sys.stdout.write("\b"*5)
         if self.Timers[user]['first_run']:
           self.Timers[user]['first_run'] = False
+        ''' Just pring the time '''
         sys.stdout.write(self.time_format(t, user, start_time))
+        ''' 
+        We must call flush() or close() in order to display 
+        the buffered contents of the open file.
+        '''
         sys.stdout.flush()
         last_sec = t
+        ''' Request user input (with timeout) '''
         r, w, x = select.select([ sys.stdin ], [], [], 1)
         if r:
           btn = r[0].readline().strip()
+          ''' Check if the user just hit "Enter" and stop the timer if so. '''
           if btn == '':
             self.Timers[user]['timer'] = int(t - start_time) + 1
             self.Timers[user]['first_run'] = True
@@ -294,15 +332,22 @@ class Game(object):
 
   def move_piece(self):
     user = self.CurrentPlayer
+    ''' Get the move from the user input '''
     move = raw_input(user.upper() + ' >> ')
     if move.lower() == 'quit':
+      ''' Terminate the game if a player enters "quit" '''
       if user == 'white':
         display_username = self.user_white
       else:
         display_username = self.user_black
       print "%s quits" % display_username
       x()
-    piece, new_position = re.sub('\s+', '', move).split('->')
+    ''' Parse the move piece and its' new position '''
+    try:
+      piece, new_position = re.sub('\s+', '', move).split('->')
+    except:
+      ''' Handle any possible errors in user input by prompting for a move again '''
+      return (False, 'MOVES ARE ENTERED "PIECE->TARGET_SQUARE" E.G. "B2->B3"',)
     piece = piece.upper()
     new_position = new_position.upper()
     piece_notation = piece
@@ -313,19 +358,19 @@ class Game(object):
     if not piece_square.is_occupied():
       return (False, 'NO PIECE IN SQUARE',)
     piece = piece_square.get_piece()
-    ''' check if piece belongs to the user '''
+    ''' Check if piece belongs to the user '''
     if not piece.Color == user:      
       return (False, 'PIECE BELONGS TO THE OTHER USER',)
-    ''' calculate row & column distance to new position '''
+    ''' Calculate row & column distance to new position '''
     column_diff = abs(Square.column_index(piece_notation[0]) - Square.column_index(new_position_notation[0]))
     row_diff = abs(Square.row_index(piece_notation[1]) - Square.row_index(new_position_notation[1]))
-    ''' check if the move is in straight line '''
+    ''' Check if the move is in straight line '''
     straight_line = ( bool(piece_notation[0] != new_position_notation[0]) + bool(piece_notation[1] != new_position_notation[1]) ) == 1
     diagonal_line = False
     if not straight_line:
       if column_diff == row_diff:
         diagonal_line = True
-    ''' check for L-shaped move (or gamma from the Greek letter Γ) '''
+    ''' Check for L-shaped move (or gamma from the Greek letter Γ) '''
     gamma_move = False
     if column_diff == 2 or row_diff == 2:
       if column_diff == 2:
@@ -335,26 +380,25 @@ class Game(object):
         if column_diff == 1:
           gamma_move = True
     if gamma_move and not piece.DirectionGamma:
-      return (False, 'L-SHAPED MOVES NOT PERMITTED FOR THIS PIECE',)
-    
+      return (False, 'L-SHAPED MOVES NOT PERMITTED FOR THIS PIECE',)    
     if not diagonal_line and not straight_line and not gamma_move:
       return ( False, 'ILLEGAL MOVE',)
-    ''' build the path consisting of the squares required for the move '''
+    ''' Build the path consisting of the squares required for the move '''
     if not piece.LeapOverPiece:
       move_path = []
       min_row = min(Square.row_index(piece_notation[1]), Square.row_index(new_position_notation[1]))
       max_row = max(Square.row_index(piece_notation[1]), Square.row_index(new_position_notation[1]))
       min_col = min(Square.column_index(piece_notation[0]), Square.column_index(new_position_notation[0]))
       max_col = max(Square.column_index(piece_notation[0]), Square.column_index(new_position_notation[0]))
-      ''' if movement happens in a straight line decide if move is vertical or horizontal '''
+      ''' If movement happens in a straight line decide if move is vertical or horizontal '''
       if straight_line:
         if column_diff == 0:
-          ''' vertical move '''
+          ''' Vertical move '''
           column = Square.column_index(piece_notation[0])
           for r in range(min_row + 1, max_row):
             move_path.append(Square.position(r, column))
         else:
-          ''' horizontal move '''      
+          ''' Horizontal move '''      
           row = Square.column_index(piece_notation[1])
           for c in range(min_col + 1, max_col):
             move_path.append(Square.position(row, c))
