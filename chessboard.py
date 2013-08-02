@@ -20,8 +20,7 @@ class Piece(object):
   Object model of a chess piece
   
   We keep information on what kind of movements the piece is able to make (straight, diagonal, gamma),
-  how many squares it can cross in a single move, its type (of course) and the color (white or black).
-     
+  how many squares it can cross in a single move, its type (of course) and the color (white or black).     
   '''
   DirectionDiagonal = False
   DirectionStraight = False
@@ -51,19 +50,19 @@ class Piece(object):
   def __init__(self, **kwargs):
     ''' Constructor for a new chess piece '''
     self.Type = kwargs['Type']
-    ''' perform a basic check for the type '''
+    ''' Perform a basic check for the type '''
     if not self.Type in self.AvailableTypes:
       raise Exception('Unknown Piece Type')
       x(1)
     self.Color = kwargs['Color']
     directions = self.Types_Direction_Map[self.Type]
-    ''' check allowed directions for movements '''
+    ''' Check allowed directions for movement '''
     self.DirectionDiagonal = 'diagonal' in directions
     self.DirectionGamma = 'gamma' in directions
     self.DirectionStraight = 'straight' in directions
-    ''' determine if there is a limitation on the number of squares per move '''
+    ''' Determine if there is a limitation on the number of squares per move '''
     self.MaxSquares = self.Types_MaxSquares_Map[self.Type]
-    ''' only Knights can move over other pieces '''
+    ''' Only Knights can move over other pieces '''
     if self.Type == 'Knight':
       self.LeapOverPiece = True
 
@@ -72,6 +71,13 @@ class Piece(object):
     return self.Color[0].lower() + self.Type[0].upper()
         
 class Square(object):
+  '''
+  Object model of a board square
+
+  Requires zero-based row & column indexes.
+  The Piece variable holds an instance of Piece class,
+  representing a piece occupying the square.
+  '''
   Row = 0
   Column = 0
   Occupied = False
@@ -142,7 +148,15 @@ class Square(object):
     return '%(piece)s(%(column)s%(row)d)' % properties
 
 class Board(object):
+  '''
+  Object model of the board
+
+  Described by a dictionary which keys are square positions 
+  in their string representations (e.g. A1),
+  and values the corresponding Square instances.
+  '''
   Squares = {}
+  ''' The initial setup of the board. '''
   Setup = {
       'Pawn'   : 'A2:H2|A7:H7',
       'Rook'   : 'A1,H1|A8,H8',
@@ -325,13 +339,14 @@ class Game(object):
     
     if not diagonal_line and not straight_line and not gamma_move:
       return ( False, 'ILLEGAL MOVE',)
-    ''' check if any square in the path is occupied '''
+    ''' build the path consisting of the squares required for the move '''
     if not piece.LeapOverPiece:
       move_path = []
       min_row = min(Square.row_index(piece_notation[1]), Square.row_index(new_position_notation[1]))
       max_row = max(Square.row_index(piece_notation[1]), Square.row_index(new_position_notation[1]))
       min_col = min(Square.column_index(piece_notation[0]), Square.column_index(new_position_notation[0]))
-      max_col = max(Square.column_index(piece_notation[0]), Square.column_index(new_position_notation[0]))      
+      max_col = max(Square.column_index(piece_notation[0]), Square.column_index(new_position_notation[0]))
+      ''' if movement happens in a straight line decide if move is vertical or horizontal '''
       if straight_line:
         if column_diff == 0:
           ''' vertical move '''
@@ -343,41 +358,52 @@ class Game(object):
           row = Square.column_index(piece_notation[1])
           for c in range(min_col + 1, max_col):
             move_path.append(Square.position(row, c))
+      ''' 
+      For diagonal movement we need to loop both rows and columns.
+      Piece will have to cross squares where row offset equals 
+      column offset from starting position.
+      '''
       if diagonal_line:
         for c in range(min_col + 1, max_col):
           for r in range(min_row + 1, max_row):
             if (r - min_row) == (c - min_col):
               move_path.append(Square.position(r, c))
+    ''' Check move length and reject if exceeds permitted number '''
     if piece.MaxSquares > 0 and (len(move_path) + 1) > piece.MaxSquares:
       return (False, 'PIECE HAS LIMITED SQUARE NUMBER PER MOVE',)
+    ''' Check if any squares in the move path are occupied '''
     for path_square in move_path:
       if self.board.Squares[path_square].is_occupied():
         return ( False, 'MOVE PATH IS BLOCKED', )
-    ''' check if the square is occupied from the same player's pieces '''
+    ''' Check if the square is occupied from the same player's pieces '''
     if square.is_occupied():
       if square.get_piece().Color == user:
         return ( False, 'TARGET SQUARE ALREADY OCCUPIED WITH USER PIECE', )
+    ''' Remove the piece from its current position '''
     self.board.Squares[piece_notation].set_piece(None)
+    ''' Place the piece in the target square '''
     self.board.Squares[new_position_notation].set_piece(piece)
+    ''' Change the player '''
     self.change_player()
     return ( True, '', )
 
   def change_player(self):
-    ''' perform any actions necessary to change the current player '''
+    ''' Perform any actions necessary to change the current player '''
     if self.CurrentPlayer == 'white':
       self.CurrentPlayer = 'black'
     else:
       self.CurrentPlayer = 'white'
 
   def __str__(self):
-    '''
-    Display the board at the current state.
-    '''
+    ''' Fetch the board representation at the current state. '''
     b = str(self.board) # Get the board string representation
     l = len(b.split("\n")[0]) # find the length of the first line
-    ''' use format to display the usernames centered on top and bottom respectively (depending which color each player is assigned) '''
+    ''' 
+    Use format to display the usernames centered on top and bottom respectively 
+    (depending which color each player is assigned) 
+    '''
     user = "{user:^%d}\n" % l     
-    ''' add usernames to the board '''
+    ''' Add usernames to the board '''
     board = user.format(user=self.user_black)
     board += b + '\n'
     board += user.format(user=self.user_white)
@@ -393,21 +419,21 @@ if __name__ == '__main__':
   argparser.add_argument('--user2', help = '2nd username', default = 'User #2')
   arguments = argparser.parse_args() 
 
-  ''' start the game '''
+  ''' Start the game '''
   game = Game(arguments)
   game.board.setup()
-  ''' display initial board setup '''
+  ''' Display initial board setup '''
   print game
   while True:
-    ''' start the timer for the current player '''
+    ''' Start the timer for the current player '''
     game.start_timer()
-    ''' request a piece move '''
+    ''' Request a piece move '''
     move_legal, message = game.move_piece()
     if move_legal:
-      ''' if move is legal show changed board '''
+      ''' If move is legal, show changed board '''
       print game  
     else:
-      ''' otherwise request a new move from the player '''
+      ''' Otherwise request a new move from the player '''
       print '%s, PLEASE PLAY AGAIN' % (message,)
   
 
