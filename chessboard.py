@@ -139,7 +139,7 @@ class Square(object):
     if self.Piece is None:
       piece = ""
     else:
-      piece_color = str(self.Piece)
+      piece = str(self.Piece)
     properties = {
         'piece'  : piece,
         'row'    : self.Row + 1,
