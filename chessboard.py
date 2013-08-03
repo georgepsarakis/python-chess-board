@@ -355,7 +355,7 @@ class Game(object):
       piece, new_position = re.sub('\s+', '', move).split('->')
     except:
       ''' Handle any possible errors in user input by prompting for a move again '''
-      return (False, 'MOVES ARE ENTERED "PIECE->TARGET_SQUARE" E.G. "B2->B3"',)
+      return (False, 'MOVES ARE ENTERED "PIECE_SQUARE->TARGET_SQUARE" E.G. "B2->B3"',)
     piece = piece.upper()
     new_position = new_position.upper()
     piece_notation = piece
