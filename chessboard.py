@@ -195,12 +195,14 @@ class Board(object):
     and return a list of tuples with the square coordinates 
     to be assigned to the piece type.
     '''
+    ''' Check if distinct positions are given '''
     distinct = not ( ':' in r )
     separator = None
     if ':' in r:
       separator = ':'
     elif ',' in r:
       separator = ','
+    ''' Distinct and single position (e.g. Queens) have essentially the same implementation '''
     if separator is None:
       r = [ r ]
     else:
@@ -208,13 +210,18 @@ class Board(object):
     if distinct:
       return [ ( Square.row_index(p[1]), Square.column_index(p[0]), ) for p in r ]
     else:
+      ''' Find starting-ending rows & columns for this range '''
       start_column = Square.column_index(r[0][0])
       stop_column = Square.column_index(r[1][0])
       start_row = Square.row_index(r[0][1])
       stop_row = Square.row_index(r[1][1])
       r = []
-      for column in range(start_column, stop_column - start_column + 1):
-        r.append( ( start_row, column, ) )
+      if ( stop_column - start_column ) > 0:
+        for column in range(start_column, stop_column - start_column + 1):
+          r.append( ( start_row, column, ) )
+      elif ( stop_row - start_row ) > 0:
+        for row in range(start_row, stop_row - start_row + 1):
+          r.append( ( row, start_column, ) )
       return r
   
   def add_piece(self, color, piece_type, row, column):    
