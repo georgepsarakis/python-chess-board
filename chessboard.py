@@ -184,12 +184,12 @@ class Board(object):
     '''
     for piece_type, piece_range in self.Setup.iteritems():
       white, black = piece_range.split('|')
-      for p in self.parse_range(white):
+      for p in self.__parse_range(white):
         self.add_piece('white', piece_type, p[0], p[1])
-      for p in self.parse_range(black):
+      for p in self.__parse_range(black):
         self.add_piece('black', piece_type, p[0], p[1])
  
-  def parse_range(self, r):
+  def __parse_range(self, r):
     '''
     Parse setup ranges (from the Setup dictionary) 
     and return a list of tuples with the square coordinates 
