@@ -421,7 +421,7 @@ class Game(object):
             if (r - min_row) == (c - min_col):
               move_path.append(Square.position(r, c))
     ''' Check move length and reject if exceeds permitted number '''
-    if piece.MaxSquares > 0 and (len(move_path) + 1) > piece.MaxSquares:
+    if not gamma_move and piece.MaxSquares > 0 and (len(move_path) + 1) > piece.MaxSquares:
       return (False, 'PIECE HAS LIMITED SQUARE NUMBER PER MOVE',)
     ''' Check if any squares in the move path are occupied '''
     for path_square in move_path:
