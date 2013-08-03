@@ -278,6 +278,7 @@ class Game(object):
       self.user_black = arguments.user1
     ''' Instantiate a board for our game '''
     self.board = Board()
+    self.board.setup()
 
   def time_format(self, t, user, start_time):
     ''' Display elapsed seconds for the user in human readable format '''
@@ -472,7 +473,6 @@ if __name__ == '__main__':
 
   ''' Start the game '''
   game = Game(arguments)
-  game.board.setup()
   ''' Display initial board setup '''
   print game
   while True:
